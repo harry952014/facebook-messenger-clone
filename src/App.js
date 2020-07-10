@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Button , FormControl, InputLabel, Input, Card} from '@material-ui/core';
+import { Button , FormControl, InputLabel, Input, IconButton, Icon } from '@material-ui/core';
 import './App.css';
 import Message from './Message';
+import db from './firebase';
+import firebase from 'firebase/app'
+import FlipMove from 'react-flip-move'
+import SendIcon from '@material-ui/icons/Send'
+
 
 function App() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([
-    {username: 'sonny', text: 'Hey guys'},
-    {username: 'Haris', text: 'Whats Up'}
+    // {idusername: 'sonny', message: 'Hey guys'},
+    // {username: 'Haris', tmessage: 'Whats Up'}
   ]);
 
   const [username, setUsername] = useState(['']);
@@ -24,31 +29,56 @@ function App() {
     setUsername(prompt('Please Enter Your Name.'))
   }, []) //condition
 
+
+  useEffect(() => {
+    //run once when the app component loads
+
+    db.collection('messages')
+    .orderBy('timestamp', 'desc')
+    .onSnapshot(snapshot => {
+      setMessages(snapshot.docs.map(doc => ({id: doc.id, message: doc.data()})))  // This is a listener for real-time data changes in the firebase DB
+    });
+  }, [])
+
+
   const sendMessage = (event) => {
     event.preventDefault();
-    setMessages([...messages, {username: username, text: input}]);
+
+    db.collection('messages').add({
+      message: input,
+      username: username,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    })
+    // setMessages([...messages, {username: username, message: input}]);
     setInput('');
   }
 
   return (
     <div className="App">
-      <h1>Hello Slick Programmer :rock! </h1>
-      <h2>Welcome, {username}</h2>
+      <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg?w=100&h=100" width="100" height="100"/>
+      <h1>Welcome, {username}</h1>
 
-    <form>
-      <FormControl>
-        <InputLabel >Enter Message</InputLabel>
-        <Input value={input} onChange={event => setInput(event.target.value)}/>
-        <Button disabled={!input} variant='contained' color="primary" type='submit' onClick={sendMessage}>Send Message</Button>
-  
+    <form className="app__form">
+      <FormControl className="app__formControl">
+        <InputLabel >Type a message</InputLabel>
+
+          <Input className="app__input" placeholder="Type a message..." value={input} onChange={event => setInput(event.target.value)}/>
+
+          <IconButton className="app__iconButton" disabled={!input} variant="contained" color="primary" type='submit' onClick={sendMessage}>
+            <SendIcon/>
+          </IconButton>
+      
       </FormControl>
     </form>
 
+    <FlipMove>
       {
-        messages.map(message => (
-          <Message username={username} message={message}/>
+        messages.map(({id, message}) => (
+            <Message key={id} username={username} message={message} />
         ))
       }
+    </FlipMove>
+
     </div>
   );
 }
